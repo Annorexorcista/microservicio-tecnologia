@@ -7,7 +7,10 @@ import com.bootcamp.technology.infrastructure.adapters.driven.r2dbc.mapper.Techn
 import com.bootcamp.technology.infrastructure.adapters.driven.r2dbc.repository.ITechnologyRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.reactive.TransactionalOperator;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Collection;
 
 /**
  * Adaptador driven que implementa el puerto de salida {@link ITechnologyPersistencePort}
@@ -46,6 +49,18 @@ public class TechnologyPersistenceAdapter implements ITechnologyPersistencePort 
     @Override
     public Mono<Boolean> existsByNameIgnoreCase(String normalizedName) {
         return repository.existsByNameIgnoreCase(normalizedName);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Delega en {@code findAllById} del repositorio reactivo y mapea cada
+     * entidad emitida al modelo de dominio, sin bloquear.
+     */
+    @Override
+    public Flux<Technology> findAllByIds(Collection<Long> ids) {
+        return repository.findAllById(ids)
+                .map(mapper::toDomain);
     }
 
     /**

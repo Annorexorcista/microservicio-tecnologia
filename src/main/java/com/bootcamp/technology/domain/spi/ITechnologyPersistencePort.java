@@ -1,7 +1,10 @@
 package com.bootcamp.technology.domain.spi;
 
 import com.bootcamp.technology.domain.model.Technology;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Collection;
 
 /**
  * Puerto de salida (spi) del dominio para la persistencia de tecnologías.
@@ -32,4 +35,13 @@ public interface ITechnologyPersistencePort {
      *         identificador asignado.
      */
     Mono<Technology> save(Technology technology);
+
+    /**
+     * Recupera las tecnologías cuyos identificadores están contenidos en la
+     * colección proporcionada. Solo emite las que existen.
+     *
+     * @param ids identificadores de tecnología a consultar.
+     * @return un {@link Flux} con las tecnologías existentes (0..N elementos).
+     */
+    Flux<Technology> findAllByIds(Collection<Long> ids);
 }
