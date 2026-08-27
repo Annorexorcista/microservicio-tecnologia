@@ -8,6 +8,9 @@ import com.bootcamp.technology.infrastructure.adapters.driving.webflux.dto.Techn
 import com.bootcamp.technology.infrastructure.adapters.driving.webflux.dto.TechnologyResponse;
 import com.bootcamp.technology.infrastructure.adapters.driving.webflux.handler.TechnologyHandler;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -84,11 +87,41 @@ public class TechnologyRouter {
                                             content = @Content(
                                                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                                                     schema = @Schema(implementation = ErrorResponse.class)))
+                            })),
+            @RouterOperation(
+                    path = TECHNOLOGIES_PATH,
+                    method = RequestMethod.GET,
+                    beanClass = ITechnologyServicePort.class,
+                    beanMethod = "findTechnologiesByIds",
+                    operation = @Operation(
+                            operationId = "findTechnologiesByIds",
+                            summary = "Consulta tecnologías por identificadores",
+                            description = "Recupera las tecnologías cuyos identificadores se "
+                                    + "indican en el parámetro de consulta 'ids' (separados por "
+                                    + "comas, por ejemplo ?ids=1,2,3). Solo se devuelven las "
+                                    + "tecnologías existentes; los identificadores inexistentes "
+                                    + "se omiten. Pensado para consumo entre microservicios.",
+                            parameters = {
+                                    @Parameter(
+                                            in = ParameterIn.QUERY,
+                                            name = "ids",
+                                            description = "Identificadores de tecnología separados por comas",
+                                            example = "1,2,3")
+                            },
+                            responses = {
+                                    @ApiResponse(
+                                            responseCode = "200",
+                                            description = "Lista de tecnologías encontradas (puede estar vacía)",
+                                            content = @Content(
+                                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                                    array = @ArraySchema(
+                                                            schema = @Schema(implementation = TechnologyResponse.class))))
                             }))
     })
     public RouterFunction<ServerResponse> technologyRoutes(TechnologyHandler handler) {
         return RouterFunctions.route()
                 .POST(TECHNOLOGIES_PATH, accept(MediaType.APPLICATION_JSON), handler::register)
+                .GET(TECHNOLOGIES_PATH, accept(MediaType.APPLICATION_JSON), handler::findByIds)
                 .build();
     }
 }

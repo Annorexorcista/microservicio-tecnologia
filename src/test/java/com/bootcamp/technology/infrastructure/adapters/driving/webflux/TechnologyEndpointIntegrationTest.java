@@ -251,4 +251,61 @@ class TechnologyEndpointIntegrationTest {
                 .expectBody(ErrorResponse.class)
                 .value(error -> assertThat(error.status()).isEqualTo(HttpStatus.BAD_REQUEST.value()));
     }
+
+    // --- GET /api/v1/technologies?ids=... -> 200 con las tecnologías existentes ---
+
+    @Test
+    void get_byIds_returns200WithOnlyExistingTechnologies() {
+        Long javaId = createTechnology("Java", "Lenguaje de programación");
+        Long nodeId = createTechnology("Node", "Runtime de JavaScript");
+
+        // Se piden 3 ids: dos existentes y uno inexistente (999999); solo deben volver los existentes.
+        webTestClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v1/technologies")
+                        .queryParam("ids", javaId + "," + nodeId + ",999999")
+                        .build())
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBodyList(TechnologyResponse.class)
+                .value(list -> {
+                    assertThat(list).hasSize(2);
+                    assertThat(list).extracting(TechnologyResponse::id)
+                            .containsExactlyInAnyOrder(javaId, nodeId);
+                    assertThat(list).extracting(TechnologyResponse::name)
+                            .containsExactlyInAnyOrder("Java", "Node");
+                });
+    }
+
+    @Test
+    void get_withoutIdsParam_returnsEmptyList() {
+        createTechnology("Angular", "Framework frontend");
+
+        webTestClient.get()
+                .uri("/api/v1/technologies")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(TechnologyResponse.class)
+                .value(list -> assertThat(list).isEmpty());
+    }
+
+    /**
+     * Helper que registra una tecnología vía el endpoint POST y devuelve su id
+     * generado, para preparar datos de los tests del endpoint de consulta.
+     */
+    private Long createTechnology(String name, String description) {
+        return webTestClient.post()
+                .uri("/api/v1/technologies")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(new TechnologyRequest(name, description))
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody(TechnologyResponse.class)
+                .returnResult()
+                .getResponseBody()
+                .id();
+    }
 }

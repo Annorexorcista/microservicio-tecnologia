@@ -6,7 +6,10 @@ import com.bootcamp.technology.domain.exception.InvalidTechnologyDataException;
 import com.bootcamp.technology.domain.exception.TechnologyAlreadyExistsException;
 import com.bootcamp.technology.domain.model.Technology;
 import com.bootcamp.technology.domain.spi.ITechnologyPersistencePort;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Collection;
 
 /**
  * Caso de uso de dominio para el registro de tecnologías.
@@ -47,6 +50,25 @@ public class TechnologyUseCase implements ITechnologyServicePort {
         return validate(technology)
                 .flatMap(this::ensureNameIsUnique)
                 .flatMap(persistencePort::save);
+    }
+
+    /**
+     * Recupera las tecnologías existentes para los identificadores dados.
+     *
+     * <p>Si la colección es {@code null} o vacía, emite un {@link Flux} vacío sin
+     * consultar la persistencia. Los identificadores inexistentes no producen
+     * elementos, de modo que el consumidor puede detectar ausencias comparando
+     * la cantidad solicitada con la emitida.
+     *
+     * @param ids identificadores de tecnología a consultar.
+     * @return un {@link Flux} con las tecnologías existentes.
+     */
+    @Override
+    public Flux<Technology> findTechnologiesByIds(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Flux.empty();
+        }
+        return persistencePort.findAllByIds(ids);
     }
 
     /**
