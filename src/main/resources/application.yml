@@ -1,0 +1,33 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: technology-service
+  r2dbc:
+    url: r2dbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:technology_db}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
+    pool:
+      enabled: true
+      initial-size: 5
+      max-size: 20
+  # Ejecuta schema.sql al arrancar para crear la tabla si no existe.
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+# Documentacion OpenAPI / Swagger UI (springdoc)
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+  show-actuator: false
+
+logging:
+  level:
+    org.springframework.r2dbc: INFO
+    io.r2dbc.mysql: INFO
