@@ -19,6 +19,23 @@ repositories {
 
 ext {
     jqwikVersion = '1.9.1'
+    // Testcontainers version pinned to a release whose bundled docker-java client
+    // is compatible with recent Docker Desktop daemons (avoids HTTP 400 on /info).
+    testcontainersVersion = '1.20.4'
+}
+
+// Override the Testcontainers version managed by the Spring Boot BOM so the newer
+// (Docker-Desktop-compatible) docker-java client is used in tests.
+ext['testcontainers.version'] = testcontainersVersion
+
+// Force the docker-java client artifacts to a version compatible with recent
+// Docker daemons; the transitively-managed 3.3.6 fails /info with HTTP 400.
+configurations.all {
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == 'com.github.docker-java') {
+            details.useVersion '3.4.0'
+        }
+    }
 }
 
 dependencies {
@@ -39,12 +56,18 @@ dependencies {
     testImplementation 'io.projectreactor:reactor-test'
     testImplementation "net.jqwik:jqwik:${jqwikVersion}"
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    testImplementation 'org.testcontainers:mysql'
-    testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:r2dbc'
+    testImplementation "org.testcontainers:mysql:${testcontainersVersion}"
+    testImplementation "org.testcontainers:junit-jupiter:${testcontainersVersion}"
+    testImplementation "org.testcontainers:r2dbc:${testcontainersVersion}"
 
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+// Optional isolated build directory (used only when -PbuildDirName is provided),
+// so parallel/isolated test runs don't contend for the shared build output.
+if (project.hasProperty('buildDirName')) {
+    layout.buildDirectory = file("${rootDir}/${project.property('buildDirName')}")
 }
 
 test {
@@ -52,4 +75,21 @@ test {
         // Run both JUnit Jupiter tests and jqwik property-based tests
         includeEngines 'junit-jupiter', 'jqwik'
     }
+
+    // Pin the Docker Engine API version for the docker-java client used by
+    // Testcontainers. Docker Desktop / Docker Engine 29+ dropped support for the
+    // old API version that docker-java negotiates by default, so the client's
+    // first /info call is rejected with HTTP 400 and Testcontainers reports
+    // "Could not find a valid Docker environment".
+    //
+    // The daemon on this machine advertises a min API of 1.40 and a current API
+    // of 1.55; 1.44 is the safe floor recommended for Docker 29+. We pin it via
+    // BOTH channels docker-java honours:
+    //   * the DOCKER_API_VERSION environment variable, and
+    //   * the `api.version` system property (read by DefaultDockerClientConfig),
+    // because the environment variable alone is not always picked up by the
+    // npipe transport on Windows.
+    def dockerApiVersion = System.getenv('DOCKER_API_VERSION') ?: '1.44'
+    environment 'DOCKER_API_VERSION', dockerApiVersion
+    systemProperty 'api.version', dockerApiVersion
 }
