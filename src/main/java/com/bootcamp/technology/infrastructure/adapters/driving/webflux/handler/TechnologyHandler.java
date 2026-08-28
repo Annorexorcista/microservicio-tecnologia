@@ -99,6 +99,24 @@ public class TechnologyHandler {
     }
 
     /**
+     * Elimina las tecnologías indicadas en el parámetro de consulta {@code ids}
+     * (separados por comas). Pensado para el consumo entre microservicios durante
+     * la eliminación en cascada de un bootcamp. Responde {@code 204 No Content} sin
+     * cuerpo; sin bloqueos.
+     *
+     * @param request la solicitud del servidor; puede incluir el parámetro {@code ids}.
+     * @return un {@link Mono} que emite la respuesta {@code 204 No Content}.
+     */
+    public Mono<ServerResponse> deleteByIds(ServerRequest request) {
+        List<Long> ids = request.queryParam("ids")
+                .map(this::parseIds)
+                .orElseGet(List::of);
+
+        return servicePort.deleteTechnologiesByIds(ids)
+                .then(ServerResponse.noContent().build());
+    }
+
+    /**
      * Convierte el valor crudo del parámetro {@code ids} en una lista de
      * identificadores. Ignora segmentos en blanco y no numéricos para ser
      * tolerante ante entradas malformadas en un endpoint de consulta.

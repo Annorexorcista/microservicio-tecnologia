@@ -72,6 +72,21 @@ public class TechnologyUseCase implements ITechnologyServicePort {
     }
 
     /**
+     * Elimina las tecnologías indicadas. Si la colección es {@code null} o vacía,
+     * completa sin consultar la persistencia.
+     *
+     * @param ids identificadores de tecnología a eliminar.
+     * @return un {@link Mono} que completa cuando el borrado ha terminado.
+     */
+    @Override
+    public Mono<Void> deleteTechnologiesByIds(Collection<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Mono.empty();
+        }
+        return persistencePort.deleteAllByIds(ids);
+    }
+
+    /**
      * Normaliza (aplica {@code trim}) y valida sintácticamente la tecnología.
      *
      * <p>Reglas: nombre y descripción son obligatorios (null/vacío/solo espacios

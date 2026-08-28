@@ -37,4 +37,15 @@ public interface ITechnologyServicePort {
      * @return un {@link Flux} con las tecnologías existentes (0..N elementos).
      */
     Flux<Technology> findTechnologiesByIds(Collection<Long> ids);
+
+    /**
+     * Elimina las tecnologías cuyos identificadores se indican. Pensado para el
+     * consumo entre microservicios durante la eliminación en cascada de un
+     * bootcamp: el microservicio de Capacidad solicita borrar las tecnologías que
+     * quedaron huérfanas (sin ninguna capacidad que las referencie).
+     *
+     * @param ids identificadores de tecnología a eliminar.
+     * @return un {@link Mono} que completa cuando el borrado ha terminado.
+     */
+    Mono<Void> deleteTechnologiesByIds(Collection<Long> ids);
 }

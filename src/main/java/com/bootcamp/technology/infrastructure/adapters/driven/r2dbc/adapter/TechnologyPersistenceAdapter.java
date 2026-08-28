@@ -66,6 +66,18 @@ public class TechnologyPersistenceAdapter implements ITechnologyPersistencePort 
     /**
      * {@inheritDoc}
      *
+     * <p>Delega en {@code deleteAllById} del repositorio reactivo, dentro de una
+     * transacción reactiva.
+     */
+    @Override
+    public Mono<Void> deleteAllByIds(Collection<Long> ids) {
+        return repository.deleteAllById(ids)
+                .as(transactionalOperator::transactional);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
      * <p>Compone un pipeline reactivo que mapea el dominio a entidad, la persiste y
      * mapea de vuelta a dominio, todo dentro de una transacción reactiva. Ante una
      * {@link DataIntegrityViolationException} (por ejemplo, una condición de carrera
