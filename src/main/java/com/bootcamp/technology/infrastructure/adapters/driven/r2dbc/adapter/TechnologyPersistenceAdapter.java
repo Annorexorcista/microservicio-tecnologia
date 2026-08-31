@@ -12,20 +12,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.Collection;
 
-/**
- * Adaptador driven que implementa el puerto de salida {@link ITechnologyPersistencePort}
- * usando Spring Data R2DBC.
- *
- * <p>Traduce entre el modelo de dominio y la entidad de persistencia mediante el
- * {@link TechnologyEntityMapper}, delega las operaciones no bloqueantes en el
- * {@link ITechnologyRepository} y envuelve la escritura en una transacción reactiva
- * mediante el {@link TransactionalOperator}.
- *
- * <p>No se anota con {@code @Component}: el wiring hexagonal se realiza en
- * {@code BeanConfiguration} para mantener el dominio y el adaptador libres de
- * acoplamiento a la configuración de Spring. Es un flujo totalmente reactivo,
- * sin llamadas bloqueantes ({@code .block()}).
- */
 public class TechnologyPersistenceAdapter implements ITechnologyPersistencePort {
 
     private final ITechnologyRepository repository;
@@ -40,50 +26,23 @@ public class TechnologyPersistenceAdapter implements ITechnologyPersistencePort 
         this.transactionalOperator = transactionalOperator;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Delega directamente en la derived query del repositorio, que compara el
-     * nombre sin distinción entre mayúsculas y minúsculas.
-     */
     @Override
     public Mono<Boolean> existsByNameIgnoreCase(String normalizedName) {
         return repository.existsByNameIgnoreCase(normalizedName);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Delega en {@code findAllById} del repositorio reactivo y mapea cada
-     * entidad emitida al modelo de dominio, sin bloquear.
-     */
     @Override
     public Flux<Technology> findAllByIds(Collection<Long> ids) {
         return repository.findAllById(ids)
                 .map(mapper::toDomain);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Delega en {@code deleteAllById} del repositorio reactivo, dentro de una
-     * transacción reactiva.
-     */
     @Override
     public Mono<Void> deleteAllByIds(Collection<Long> ids) {
         return repository.deleteAllById(ids)
                 .as(transactionalOperator::transactional);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Compone un pipeline reactivo que mapea el dominio a entidad, la persiste y
-     * mapea de vuelta a dominio, todo dentro de una transacción reactiva. Ante una
-     * {@link DataIntegrityViolationException} (por ejemplo, una condición de carrera
-     * sobre la restricción UNIQUE del nombre) se reasigna a
-     * {@link TechnologyAlreadyExistsException} para reforzar la respuesta 409.
-     */
     @Override
     public Mono<Technology> save(Technology technology) {
         return Mono.fromCallable(() -> mapper.toEntity(technology))

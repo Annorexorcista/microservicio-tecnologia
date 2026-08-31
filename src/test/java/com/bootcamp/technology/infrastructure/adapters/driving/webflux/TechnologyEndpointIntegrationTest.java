@@ -280,16 +280,74 @@ class TechnologyEndpointIntegrationTest {
     }
 
     @Test
-    void get_withoutIdsParam_returnsEmptyList() {
+    void get_withoutIdsParam_returns400() {
         createTechnology("Angular", "Framework frontend");
 
         webTestClient.get()
                 .uri("/api/v1/technologies")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(ErrorResponse.class)
+                .value(error -> {
+                    assertThat(error.code()).isEqualTo("IDS_REQUIRED");
+                    assertThat(error.status()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+                });
+    }
+
+    @Test
+    void get_withNonNumericId_returns400() {
+        webTestClient.get()
+                .uri("/api/v1/technologies?ids=1,abc,3")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(ErrorResponse.class)
+                .value(error -> assertThat(error.code()).isEqualTo("ID_NOT_NUMERIC"));
+    }
+
+    @Test
+    void delete_byIds_deletesOnlyRequestedTechnologies() {
+        Long javaId = createTechnology("Java", "Lenguaje de programación");
+        Long nodeId = createTechnology("Node", "Runtime de JavaScript");
+
+        webTestClient.delete()
+                .uri("/api/v1/technologies?ids=" + javaId)
+                .exchange()
+                .expectStatus().isNoContent()
+                .expectBody().isEmpty();
+
+        assertThat(repository.existsById(javaId).block()).isFalse();
+        assertThat(repository.existsById(nodeId).block()).isTrue();
+    }
+
+    @Test
+    void delete_withInvalidIds_returns400WithoutDeletingAnything() {
+        Long javaId = createTechnology("Java", "Lenguaje de programación");
+
+        webTestClient.delete()
+                .uri("/api/v1/technologies?ids=" + javaId + ",abc")
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(ErrorResponse.class)
+                .value(error -> assertThat(error.code()).isEqualTo("ID_NOT_NUMERIC"));
+
+        assertThat(repository.existsById(javaId).block()).isTrue();
+    }
+
+    @Test
+    void openApi_documentsRequiredIdsAndBadRequestForGetAndDelete() {
+        webTestClient.get()
+                .uri("/v3/api-docs")
+                .exchange()
                 .expectStatus().isOk()
-                .expectBodyList(TechnologyResponse.class)
-                .value(list -> assertThat(list).isEmpty());
+                .expectBody()
+                .jsonPath("$.paths['/api/v1/technologies'].get.responses['400']").exists()
+                .jsonPath("$.paths['/api/v1/technologies'].delete.responses['400']").exists()
+                .jsonPath("$.paths['/api/v1/technologies'].get.parameters[?(@.name=='ids' && @.required==true)]")
+                .exists()
+                .jsonPath("$.paths['/api/v1/technologies'].delete.parameters[?(@.name=='ids' && @.required==true)]")
+                .exists();
     }
 
     /**

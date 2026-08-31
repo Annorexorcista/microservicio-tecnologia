@@ -7,15 +7,6 @@ import org.springframework.r2dbc.connection.R2dbcTransactionManager;
 import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.reactive.TransactionalOperator;
 
-/**
- * Configuración de transaccionalidad reactiva para R2DBC.
- *
- * <p>Registra un {@link ReactiveTransactionManager} respaldado por
- * {@link R2dbcTransactionManager} sobre el {@link ConnectionFactory} y un
- * {@link TransactionalOperator} programático. La transacción se propaga por el
- * {@code Context} de Reactor (no por {@code ThreadLocal}): commit al completar
- * el pipeline y rollback ante error, sin uso de {@code .block()}.
- */
 @Configuration
 public class R2dbcConfig {
 
