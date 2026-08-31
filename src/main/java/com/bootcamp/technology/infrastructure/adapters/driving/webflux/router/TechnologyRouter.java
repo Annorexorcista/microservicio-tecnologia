@@ -25,30 +25,11 @@ import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.RouterFunctions;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
-/**
- * Router de la capa driving (WebFlux funcional) que declara las rutas del
- * recurso {@code technologies} y las asocia al {@link TechnologyHandler}.
- *
- * <p>Los endpoints funcionales ({@code RouterFunction}) no exponen su contrato
- * automáticamente a springdoc como lo hacen los {@code @RestController}. Por ello
- * la documentación OpenAPI del endpoint se declara de forma explícita con las
- * anotaciones {@link RouterOperations}/{@link RouterOperation} sobre el método
- * que produce el bean {@code RouterFunction}, describiendo el esquema de la
- * solicitud, el de la respuesta {@code 201} y los errores {@code 400}/{@code 409}
- * (Requerimiento 6.1).
- */
 @Configuration
 public class TechnologyRouter {
 
     private static final String TECHNOLOGIES_PATH = "/api/v1/technologies";
 
-    /**
-     * Declara la ruta {@code POST /api/v1/technologies} (que acepta
-     * {@code application/json}) y la delega en {@link TechnologyHandler#register}.
-     *
-     * @param handler handler que procesa el registro de tecnologías
-     * @return la {@link RouterFunction} con la ruta de registro configurada
-     */
     @Bean
     @RouterOperations({
             @RouterOperation(
@@ -105,6 +86,7 @@ public class TechnologyRouter {
                                     @Parameter(
                                             in = ParameterIn.QUERY,
                                             name = "ids",
+                                            required = true,
                                             description = "Identificadores de tecnología separados por comas",
                                             example = "1,2,3")
                             },
@@ -115,7 +97,14 @@ public class TechnologyRouter {
                                             content = @Content(
                                                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                                                     array = @ArraySchema(
-                                                            schema = @Schema(implementation = TechnologyResponse.class))))
+                                                            schema = @Schema(implementation = TechnologyResponse.class)))),
+                                    @ApiResponse(
+                                            responseCode = "400",
+                                            description = "El parámetro ids es obligatorio o contiene "
+                                                    + "identificadores inválidos",
+                                            content = @Content(
+                                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                                    schema = @Schema(implementation = ErrorResponse.class)))
                             })),
             @RouterOperation(
                     path = TECHNOLOGIES_PATH,
@@ -134,13 +123,21 @@ public class TechnologyRouter {
                                     @Parameter(
                                             in = ParameterIn.QUERY,
                                             name = "ids",
+                                            required = true,
                                             description = "Identificadores de tecnología separados por comas",
                                             example = "1,2,3")
                             },
                             responses = {
                                     @ApiResponse(
                                             responseCode = "204",
-                                            description = "Tecnologías eliminadas (sin contenido)")
+                                            description = "Tecnologías eliminadas (sin contenido)"),
+                                    @ApiResponse(
+                                            responseCode = "400",
+                                            description = "El parámetro ids es obligatorio o contiene "
+                                                    + "identificadores inválidos",
+                                            content = @Content(
+                                                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                                                    schema = @Schema(implementation = ErrorResponse.class)))
                             }))
     })
     public RouterFunction<ServerResponse> technologyRoutes(TechnologyHandler handler) {

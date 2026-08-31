@@ -12,23 +12,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.reactive.TransactionalOperator;
 
-/**
- * Cableado (wiring) de la arquitectura hexagonal.
- *
- * <p>Concentra en la capa de aplicación la construcción de los beans del dominio
- * y sus adaptadores, de modo que el núcleo ({@link TechnologyUseCase},
- * {@link com.bootcamp.technology.domain.model.Technology} y los puertos) permanece
- * libre de anotaciones de Spring. Los componentes ya gestionados por el framework
- * ({@link ITechnologyRepository}, {@link TechnologyEntityMapper} y
- * {@link TransactionalOperator}) se inyectan aquí para construir el adaptador de
- * persistencia y, con él, el caso de uso.
- *
- * <p>El bean del adaptador driving {@link TechnologyHandler} se registra aquí,
- * inyectando el puerto de entrada {@link ITechnologyServicePort} y el
- * {@link TechnologyDtoMapper}. Así el {@code TechnologyRouter} puede resolver su
- * dependencia del handler sin que este quede anotado con {@code @Component}
- * (evitando beans duplicados) y el dominio permanece libre de anotaciones.
- */
 @Configuration
 public class BeanConfiguration {
 

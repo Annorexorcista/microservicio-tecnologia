@@ -24,24 +24,6 @@ import org.springframework.web.server.ServerWebInputException;
 
 import reactor.core.publisher.Mono;
 
-/**
- * Manejador global de errores reactivo para la capa driving (WebFlux).
- *
- * <p>Intercepta las excepciones que emergen del pipeline reactivo y las traduce
- * a respuestas HTTP con un cuerpo {@link ErrorResponse} uniforme, sin bloquear
- * (todo se compone con operadores de Project Reactor, retornando
- * {@link Mono Mono&lt;ServerResponse&gt;}).
- *
- * <ul>
- *   <li>{@link InvalidTechnologyDataException} -&gt; 400 Bad Request</li>
- *   <li>{@link TechnologyAlreadyExistsException} -&gt; 409 Conflict</li>
- *   <li>{@link ServerWebInputException} (JSON inválido / body faltante) -&gt; 400 Bad Request</li>
- *   <li>Cualquier otra excepción -&gt; 500 Internal Server Error</li>
- * </ul>
- *
- * <p>Se registra con {@code @Order(-2)} para tener precedencia sobre el
- * {@code DefaultErrorWebExceptionHandler} de Spring Boot.
- */
 @Component
 @Order(-2)
 public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHandler {
@@ -65,11 +47,6 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
         return RouterFunctions.route(RequestPredicates.all(), this::renderErrorResponse);
     }
 
-    /**
-     * Obtiene el error asociado a la petición desde los {@link ErrorAttributes},
-     * lo traduce a un {@link ErrorResponse} con el código HTTP adecuado y
-     * construye la {@link ServerResponse} JSON de forma no bloqueante.
-     */
     private Mono<ServerResponse> renderErrorResponse(ServerRequest request) {
         Throwable error = getError(request);
         ErrorResponse errorResponse = toErrorResponse(error);
@@ -86,6 +63,12 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
                     HttpStatus.BAD_REQUEST,
                     invalidData.getCode().getCode(),
                     invalidData.getMessage());
+        }
+        if (error instanceof InvalidIdsQueryException invalidIds) {
+            return buildErrorResponse(
+                    HttpStatus.BAD_REQUEST,
+                    invalidIds.getCode().getCode(),
+                    invalidIds.getMessage());
         }
         if (error instanceof TechnologyAlreadyExistsException alreadyExists) {
             return buildErrorResponse(
