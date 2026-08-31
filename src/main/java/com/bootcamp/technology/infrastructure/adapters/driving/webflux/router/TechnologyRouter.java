@@ -116,12 +116,38 @@ public class TechnologyRouter {
                                                     mediaType = MediaType.APPLICATION_JSON_VALUE,
                                                     array = @ArraySchema(
                                                             schema = @Schema(implementation = TechnologyResponse.class))))
+                            })),
+            @RouterOperation(
+                    path = TECHNOLOGIES_PATH,
+                    method = RequestMethod.DELETE,
+                    beanClass = ITechnologyServicePort.class,
+                    beanMethod = "deleteTechnologiesByIds",
+                    operation = @Operation(
+                            operationId = "deleteTechnologiesByIds",
+                            summary = "Elimina tecnologías por identificadores",
+                            description = "Elimina las tecnologías cuyos identificadores se "
+                                    + "indican en el parámetro de consulta 'ids' (separados por "
+                                    + "comas, por ejemplo ?ids=1,2,3). Pensado para la eliminación "
+                                    + "en cascada de un bootcamp: el microservicio de Capacidad "
+                                    + "solicita borrar las tecnologías que quedaron huérfanas.",
+                            parameters = {
+                                    @Parameter(
+                                            in = ParameterIn.QUERY,
+                                            name = "ids",
+                                            description = "Identificadores de tecnología separados por comas",
+                                            example = "1,2,3")
+                            },
+                            responses = {
+                                    @ApiResponse(
+                                            responseCode = "204",
+                                            description = "Tecnologías eliminadas (sin contenido)")
                             }))
     })
     public RouterFunction<ServerResponse> technologyRoutes(TechnologyHandler handler) {
         return RouterFunctions.route()
                 .POST(TECHNOLOGIES_PATH, accept(MediaType.APPLICATION_JSON), handler::register)
                 .GET(TECHNOLOGIES_PATH, accept(MediaType.APPLICATION_JSON), handler::findByIds)
+                .DELETE(TECHNOLOGIES_PATH, handler::deleteByIds)
                 .build();
     }
 }

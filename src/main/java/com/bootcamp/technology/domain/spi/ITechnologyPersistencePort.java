@@ -44,4 +44,13 @@ public interface ITechnologyPersistencePort {
      * @return un {@link Flux} con las tecnologías existentes (0..N elementos).
      */
     Flux<Technology> findAllByIds(Collection<Long> ids);
+
+    /**
+     * Elimina las tecnologías cuyos identificadores se indican, de forma no
+     * bloqueante.
+     *
+     * @param ids identificadores de tecnología a eliminar.
+     * @return un {@link Mono} que completa cuando el borrado ha terminado.
+     */
+    Mono<Void> deleteAllByIds(Collection<Long> ids);
 }
